@@ -1,0 +1,47 @@
+version: "3.1"
+# https://docs.mongodb.com/manual/tutorial/backup-and-restore-tools/
+#mongodb-tools only available on alpine:3.9
+# MONGODUMP
+# mongodump --host=docker_mongo_2 --username=admin --password="uXQ34mmPbVSUc0m!" --port=27017 --out=/bkp_mongo
+# MongoRESTORE
+# mongorestore --host=docker_mongo_2 --username=admin --password="uXQ34mmPbVSUc0m!" --port=27017 /bkp_mongo
+# a good option to restore db could be first drop the db using --drop flag https://www.digitalocean.com/community/tutorials/how-to-back-up-restore-and-migrate-a-mongodb-database-on-ubuntu-14-04
+services:
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+     
+  docker_mongo_2:
+    deploy:
+      replicas: 1
+      restart_policy:
+        delay: 5s
+        max_attempts: 3
+        window: 120s  
+    image: mongo:4
+    environment:
+        - MONGO_INITDB_ROOT_USERNAME=admin
+        - MONGO_INITDB_ROOT_PASSWORD=uXQ34mmPbVSUc0m!
+
+  rsnapshot_mongo:
+    image: rsnapshotd_mongo:alpine_39
+    volumes:
+      #- /usr/share/zoneinfo/America/Bogota:/etc/localtime
+      - ./bkp_folder:/snapshots
+      - ./bkp_scripts:/bkp_scripts
+    environment:
+      - BACKUP_SCRIPTS=/bkp_scripts/bkp_mongo.sh bkp_mongodb/
+      - CRON_HOURLY=0 */5 * * * *
+      - CRON_DAILY=0 */10 * * * *
+      - CRON_WEEKLY=0 0 6 * * *
+      - CRON_MONTHLY=0 30 6 1 * *
+      - RSNAPSHOT_HOURLY_TIMES=2
+      - RSNAPSHOT_DAILY_TIMES=7
+      - RSNAPSHOT_WEEKLY_TIMES=4
+      - RSNAPSHOT_MONTHLY_TIMES=3
+    depends_on:
+      - docker_mongo_2
+
+  

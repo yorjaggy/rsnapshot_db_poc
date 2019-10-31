@@ -1,0 +1,46 @@
+version: "3.1"
+
+services:
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+     
+  psql_guaral2:
+      deploy:
+        replicas: 1
+        restart_policy:
+          delay: 5s
+          max_attempts: 3
+          window: 120s  
+      image: postgres:11.3
+      volumes:
+        - psqldata_guaral_front:/var/lib/postgresql/data
+      environment:
+          - POSTGRES_USER=leishdb
+          - POSTGRES_PASSWORD=F0fB3nT@3#TwX
+          - POSTGRES_DB=leishmaniasis
+
+  rsnapshot_mongo:
+    image: rsnapshot_pg:alpine_edge
+    volumes:
+      #- /usr/share/zoneinfo/America/Bogota:/etc/localtime
+      - ./bkp_folder:/snapshots
+      - ./bkp_scripts:/bkp_scripts
+    environment:
+      - BACKUP_SCRIPTS=/bkp_scripts/bkp_pg.sh bkp_postgresql/
+      - CRON_HOURLY=0 */5 * * * *
+      - CRON_DAILY=0 */10 * * * *
+      - CRON_WEEKLY=0 0 6 * * *
+      - CRON_MONTHLY=0 30 6 1 * *
+      - RSNAPSHOT_HOURLY_TIMES=2
+      - RSNAPSHOT_DAILY_TIMES=7
+      - RSNAPSHOT_WEEKLY_TIMES=4
+      - RSNAPSHOT_MONTHLY_TIMES=3
+    depends_on:
+      - psql_guaral2
+
+volumes:
+  psqldata_guaral_front:
+    external: true
